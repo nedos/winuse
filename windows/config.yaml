@@ -1,0 +1,9 @@
+api:
+  host: "0.0.0.0"
+  port: 8080
+  api_key: null
+screenshots:
+  output_dir: "C:\\winuse\\captures"
+  format: "png"
+behavior:
+  failsafe: true

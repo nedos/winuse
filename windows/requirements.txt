@@ -1,0 +1,9 @@
+fastapi==0.128.0
+uvicorn==0.40.0
+pillow==12.1.0
+mss==10.1.0
+pyautogui==0.9.54
+pywin32==311
+psutil==7.2.2
+pyyaml==6.0.3
+pystray==0.19.5

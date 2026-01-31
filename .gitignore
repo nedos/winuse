@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+*.so
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtualenvs
+.venv/
+venv/
+ENV/
+
+# Build/dist
+build/
+dist/
+*.spec
+
+# Wheels/archives
+*.whl
+*.tar.gz
+
+# PyInstaller
+*.manifest
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Project artifacts
+.env
+/windows/dist/
+/windows/build/
+/windows/__pycache__/
+/windows/winuse/__pycache__/
+/cli/dist/
+/cli/build/
+/cli/winuse.egg-info/
+/cli/winuse_cli.egg-info/
+/scripts/*.zip
+
+# Captures (if ever synced)
+/captures/
