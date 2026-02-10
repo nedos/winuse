@@ -29,6 +29,7 @@ class KeyboardTypeRequest(BaseModel):
     text: str
     interval: float = 0.0
     mode: str = Field(default="paste", pattern="^(paste|type)$")
+    paste_keys: Optional[list[str]] = None
 
 
 class KeyboardPressRequest(BaseModel):
@@ -136,7 +137,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def keyboard_type(req: KeyboardTypeRequest):
         try:
             if req.mode == "paste":
-                pasted = kb.paste_text(req.text, allow_fallback=True)
+                pasted = kb.paste_text(req.text, keys=req.paste_keys, allow_fallback=True)
                 mode = "paste" if pasted else "type"
                 payload = {"text": req.text, "mode": mode}
                 if not pasted:
@@ -150,7 +151,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/keyboard/paste")
     def keyboard_paste(req: KeyboardTypeRequest):
         try:
-            kb.paste_text(req.text, allow_fallback=False)
+            kb.paste_text(req.text, keys=req.paste_keys, allow_fallback=False)
             return _ok({"text": req.text, "mode": "paste"})
         except Exception as exc:
             return _err("KEYBOARD_PASTE_FAILED", str(exc))

@@ -14,7 +14,7 @@ def type_text(text: str, interval: float = 0.0) -> None:
     pyautogui.write(text, interval=interval)
 
 
-def paste_text(text: str, *, allow_fallback: bool = True) -> bool:
+def paste_text(text: str, *, keys: list[str] | None = None, allow_fallback: bool = True) -> bool:
     if win32clipboard and win32con:
         win32clipboard.OpenClipboard()
         try:
@@ -22,7 +22,8 @@ def paste_text(text: str, *, allow_fallback: bool = True) -> bool:
             win32clipboard.SetClipboardData(win32con.CF_UNICODETEXT, text)
         finally:
             win32clipboard.CloseClipboard()
-        pyautogui.hotkey("ctrl", "v")
+        paste_keys = keys or ["ctrl", "v"]
+        pyautogui.hotkey(*paste_keys)
         return True
 
     if allow_fallback:
