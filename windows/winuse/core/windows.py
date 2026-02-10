@@ -80,7 +80,10 @@ def _last_error_message() -> str:
 
 
 def focus_window(hwnd: int) -> None:
-    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+    # Only restore if minimized — SW_RESTORE on a maximized window
+    # will un-maximize it and change its position/size
+    if win32gui.IsIconic(hwnd):
+        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
     win32gui.BringWindowToTop(hwnd)
 
     def is_foreground() -> bool:
