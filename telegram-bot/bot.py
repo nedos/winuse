@@ -16,7 +16,7 @@ from telegram.ext import (
     filters,
 )
 
-from config import TELEGRAM_BOT_TOKEN, WEBHOOK_URL, PORT, WINUSE_BASE
+from config import TELEGRAM_BOT_TOKEN, WEBHOOK_URL, PORT, WINUSE_BASE, MODE
 from commands import (
     cmd_help,
     cmd_windows,
@@ -79,14 +79,18 @@ def main():
     # Catch-all message logger
     application.add_handler(MessageHandler(filters.ALL, handle_message))
 
-    # Run with webhook
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        url_path=f"winuse/webhook/{TELEGRAM_BOT_TOKEN}",
-        webhook_url=f"{WEBHOOK_URL}/webhook/{TELEGRAM_BOT_TOKEN}",
-        allowed_updates=Update.ALL_TYPES,
-    )
+    if MODE == "webhook" and WEBHOOK_URL:
+        logger.info(f"Running in webhook mode on port {PORT}")
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path=f"winuse/webhook/{TELEGRAM_BOT_TOKEN}",
+            webhook_url=f"{WEBHOOK_URL}/webhook/{TELEGRAM_BOT_TOKEN}",
+            allowed_updates=Update.ALL_TYPES,
+        )
+    else:
+        logger.info("Running in polling mode")
+        application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":

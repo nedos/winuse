@@ -1,0 +1,8 @@
+services:
+  winuse-bot:
+    build: .
+    container_name: winuse-bot
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${PORT:-5000}:${PORT:-5000}"

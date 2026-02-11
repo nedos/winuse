@@ -2,14 +2,13 @@ import os
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 WINUSE_URL = os.getenv("WINUSE_URL", "http://localhost:8080")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")  # empty = use polling mode
 PORT = int(os.getenv("PORT", "5000"))
 ALLOWED_USERS = os.getenv("ALLOWED_USERS", "")  # comma-separated telegram user IDs
+MODE = os.getenv("MODE", "poll")  # "poll" or "webhook"
 
 if not TELEGRAM_BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN required")
-if not WEBHOOK_URL:
-    raise ValueError("WEBHOOK_URL required")
 
 
 def normalize_winuse_url(url: str) -> str:
