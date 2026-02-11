@@ -310,10 +310,12 @@ async def _dispatch_callback(query, data: str):
     elif data.startswith("focus:"):
         hwnd = int(data.split(":", 1)[1])
         ok = await api.focus_window(hwnd)
+        await asyncio.sleep(0.3)
         await query.message.reply_text(f"{'✅' if ok else '❌'} Focused HWND {hwnd}")
     elif data.startswith("close:"):
         hwnd = int(data.split(":", 1)[1])
         await api.focus_window(hwnd)
+        await asyncio.sleep(0.3)
         ok = await api.press_keys(["alt", "f4"])
         await query.message.reply_text(f"{'✅' if ok else '❌'} Closed HWND {hwnd}")
     elif data.startswith("min:"):
@@ -347,6 +349,13 @@ async def _dispatch_callback(query, data: str):
             f"📋 Paste text into HWND {hwnd}.\nSend the text now:",
             reply_markup=ForceReply(selective=True),
         )
+    elif data.startswith("tpaste:"):
+        hwnd = int(data.split(":", 1)[1])
+        _pending_input[query.from_user.id] = {"action": "tpaste", "hwnd": hwnd}
+        await query.message.reply_text(
+            f"📋 Terminal paste (Ctrl+Shift+V) into HWND {hwnd}.\nSend the text now:",
+            reply_markup=ForceReply(selective=True),
+        )
     elif data.startswith("keycombo:"):
         hwnd = int(data.split(":", 1)[1])
         _pending_input[query.from_user.id] = {"action": "keycombo", "hwnd": hwnd}
@@ -361,8 +370,9 @@ async def _dispatch_callback(query, data: str):
         hwnd = int(parts[1])
         key = parts[2]
         await api.focus_window(hwnd)
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.3)
         await api.press_keys([key])
+        await asyncio.sleep(0.1)
         await query.answer(f"Pressed {key}", show_alert=False)
 
 
@@ -376,7 +386,10 @@ def _window_keyboard(hwnd: int) -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton("⌨️ Type", callback_data=f"type:{hwnd}"),
             InlineKeyboardButton("📋 Paste", callback_data=f"paste:{hwnd}"),
-            InlineKeyboardButton("🔑 Key", callback_data=f"keycombo:{hwnd}"),
+            InlineKeyboardButton("📋 Term Paste", callback_data=f"tpaste:{hwnd}"),
+        ],
+        [
+            InlineKeyboardButton("🔑 Key Combo", callback_data=f"keycombo:{hwnd}"),
         ],
         [
             InlineKeyboardButton("⏎ Enter", callback_data=f"qk:{hwnd}:enter"),
@@ -444,17 +457,30 @@ async def handle_pending_input(update: Update, context: ContextTypes.DEFAULT_TYP
 
     try:
         await api.focus_window(hwnd)
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.5)
 
         if action == "type":
             ok = await api.type_text(text)
+            await asyncio.sleep(0.2)
             await update.message.reply_text(f"{'✅' if ok else '❌'} Typed {len(text)} chars into HWND {hwnd}")
         elif action == "paste":
             ok = await api.paste_text(text)
+            await asyncio.sleep(0.2)
             await update.message.reply_text(f"{'✅' if ok else '❌'} Pasted into HWND {hwnd}")
+        elif action == "tpaste":
+            # Copy text to clipboard via type endpoint, then Ctrl+Shift+V
+            ok = await api.paste_text(text)
+            if not ok:
+                # Fallback: set clipboard then press ctrl+shift+v
+                await api.type_text(text)
+            await asyncio.sleep(0.3)
+            ok = await api.press_keys(["ctrl", "shift", "v"])
+            await asyncio.sleep(0.2)
+            await update.message.reply_text(f"{'✅' if ok else '❌'} Terminal-pasted into HWND {hwnd}")
         elif action == "keycombo":
             keys = [k.strip().lower() for k in text.split(",")]
             ok = await api.press_keys(keys)
+            await asyncio.sleep(0.2)
             await update.message.reply_text(f"{'✅' if ok else '❌'} Pressed {'+'.join(keys)} on HWND {hwnd}")
     except Exception as e:
         logger.error(f"Error in pending input: {e}\n{traceback.format_exc()}")
