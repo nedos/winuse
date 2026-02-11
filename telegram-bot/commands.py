@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import functools
 import io
+import logging
 import re
+import traceback
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
@@ -11,14 +14,23 @@ from telegram.ext import ContextTypes
 from config import check_user
 import winuse_api as api
 
+logger = logging.getLogger(__name__)
+
 
 def auth(func):
-    """Decorator to check user authorization."""
+    """Decorator to check user authorization and catch errors."""
+    @functools.wraps(func)
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not check_user(update.effective_user.id):
             await update.message.reply_text("⛔ Unauthorized")
             return
-        return await func(update, context)
+        try:
+            return await func(update, context)
+        except Exception as e:
+            logger.error(f"Error in {func.__name__}: {e}\n{traceback.format_exc()}")
+            msg = update.message or (update.callback_query and update.callback_query.message)
+            if msg:
+                await msg.reply_text(f"❌ Error: {e}")
     return wrapper
 
 
