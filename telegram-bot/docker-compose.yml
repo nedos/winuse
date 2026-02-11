@@ -5,3 +5,10 @@ services:
     restart: unless-stopped
     env_file: .env
     network_mode: host
+    environment:
+      - NO_PROXY=localhost,127.0.0.1,172.24.0.0/16,10.0.0.0/8
+      - no_proxy=localhost,127.0.0.1,172.24.0.0/16,10.0.0.0/8
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
