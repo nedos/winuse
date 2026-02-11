@@ -311,6 +311,16 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         hwnd = int(data.split(":", 1)[1])
         ok = await api.maximize_window(hwnd)
         await query.message.reply_text(f"{'✅' if ok else '❌'} Maximized HWND {hwnd}")
+    elif data.startswith("shot:"):
+        hwnd = int(data.split(":", 1)[1])
+        await api.focus_window(hwnd)
+        import asyncio
+        await asyncio.sleep(0.3)
+        png = await api.take_screenshot()
+        if png:
+            await query.message.reply_photo(photo=io.BytesIO(png), caption=f"📸 HWND {hwnd}")
+        else:
+            await query.message.reply_text("❌ Screenshot failed")
 
 
 async def _show_window_detail(query, hwnd: int):
@@ -325,10 +335,11 @@ async def _show_window_detail(query, hwnd: int):
     keyboard = [
         [
             InlineKeyboardButton("🎯 Focus", callback_data=f"focus:{hwnd}"),
-            InlineKeyboardButton("➖ Min", callback_data=f"min:{hwnd}"),
-            InlineKeyboardButton("➕ Max", callback_data=f"max:{hwnd}"),
+            InlineKeyboardButton("📸 Screenshot", callback_data=f"shot:{hwnd}"),
         ],
         [
+            InlineKeyboardButton("➖ Min", callback_data=f"min:{hwnd}"),
+            InlineKeyboardButton("➕ Max", callback_data=f"max:{hwnd}"),
             InlineKeyboardButton("❌ Close", callback_data=f"close:{hwnd}"),
         ],
     ]
