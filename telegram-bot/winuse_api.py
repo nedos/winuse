@@ -57,8 +57,8 @@ async def press_keys(keys: list[str]) -> bool:
     return result.get("success", False)
 
 
-async def type_text(text: str) -> bool:
-    result = await api_post("/keyboard/type", {"text": text})
+async def type_text(text: str, mode: str = "type") -> bool:
+    result = await api_post("/keyboard/type", {"text": text, "mode": mode})
     return result.get("success", False)
 
 
