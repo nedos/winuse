@@ -295,6 +295,15 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     data = query.data
 
+    try:
+        await _dispatch_callback(query, data)
+    except Exception as e:
+        logger.error(f"Error in callback {data}: {e}\n{traceback.format_exc()}")
+        await query.message.reply_text(f"❌ Error: {e}")
+
+
+async def _dispatch_callback(query, data: str):
+
     if data.startswith("win:"):
         hwnd = int(data.split(":", 1)[1])
         await _show_window_detail(query, hwnd)
@@ -319,7 +328,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         hwnd = int(data.split(":", 1)[1])
         await api.focus_window(hwnd)
         await asyncio.sleep(0.3)
-        png = await api.take_screenshot()
+        png = await api.take_screenshot(hwnd=hwnd)
         if png:
             await query.message.reply_photo(photo=io.BytesIO(png), caption=f"📸 HWND {hwnd}")
         else:

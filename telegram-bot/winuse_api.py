@@ -68,9 +68,10 @@ async def paste_text(text: str | None = None) -> bool:
     return result.get("success", False)
 
 
-async def take_screenshot() -> bytes | None:
-    """Take screenshot and return PNG bytes."""
-    result = await api_post("/screenshot")
+async def take_screenshot(hwnd: int | None = None) -> bytes | None:
+    """Take screenshot and return PNG bytes. If hwnd given, screenshot that window."""
+    data = {"hwnd": hwnd} if hwnd else {}
+    result = await api_post("/screenshot", data)
     if not result.get("success"):
         return None
     file_url = result.get("data", {}).get("url", "")
