@@ -47,12 +47,13 @@ logger = logging.getLogger(__name__)
 async def handle_message(update: Update, context):
     """Handle pending input or log unhandled messages."""
     if update.message and update.message.text:
+        logger.info(f"Text message from {update.effective_user.id}: {update.message.text[:50]}")
         if await handle_pending_input(update, context):
             return
     if update.message and update.message.chat:
         chat = update.message.chat
         title = chat.title or chat.username or chat.first_name or "DM"
-        logger.info(f"Message in {chat.type}: '{title}' (ID: {chat.id})")
+        logger.info(f"Unhandled message in {chat.type}: '{title}' (ID: {chat.id})")
 
 
 def main():
