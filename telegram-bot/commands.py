@@ -355,6 +355,47 @@ async def _dispatch_callback(query, data: str):
             parse_mode="HTML",
             reply_markup=ForceReply(selective=True),
         )
+    elif data.startswith("qk:"):
+        # Quick key: qk:<hwnd>:<key>
+        parts = data.split(":", 2)
+        hwnd = int(parts[1])
+        key = parts[2]
+        await api.focus_window(hwnd)
+        await asyncio.sleep(0.1)
+        await api.press_keys([key])
+        await query.answer(f"Pressed {key}", show_alert=False)
+
+
+def _window_keyboard(hwnd: int) -> InlineKeyboardMarkup:
+    """Build the inline keyboard for a window."""
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("📸 Shot", callback_data=f"shot:{hwnd}"),
+            InlineKeyboardButton("🎯 Focus", callback_data=f"focus:{hwnd}"),
+        ],
+        [
+            InlineKeyboardButton("⌨️ Type", callback_data=f"type:{hwnd}"),
+            InlineKeyboardButton("📋 Paste", callback_data=f"paste:{hwnd}"),
+            InlineKeyboardButton("🔑 Key", callback_data=f"keycombo:{hwnd}"),
+        ],
+        [
+            InlineKeyboardButton("⏎ Enter", callback_data=f"qk:{hwnd}:enter"),
+            InlineKeyboardButton("⌫ Bksp", callback_data=f"qk:{hwnd}:backspace"),
+            InlineKeyboardButton("⇥ Tab", callback_data=f"qk:{hwnd}:tab"),
+            InlineKeyboardButton("Esc", callback_data=f"qk:{hwnd}:escape"),
+        ],
+        [
+            InlineKeyboardButton("⬆", callback_data=f"qk:{hwnd}:up"),
+            InlineKeyboardButton("⬇", callback_data=f"qk:{hwnd}:down"),
+            InlineKeyboardButton("⬅", callback_data=f"qk:{hwnd}:left"),
+            InlineKeyboardButton("➡", callback_data=f"qk:{hwnd}:right"),
+        ],
+        [
+            InlineKeyboardButton("➖ Min", callback_data=f"min:{hwnd}"),
+            InlineKeyboardButton("➕ Max", callback_data=f"max:{hwnd}"),
+            InlineKeyboardButton("❌ Close", callback_data=f"close:{hwnd}"),
+        ],
+    ])
 
 
 async def _show_window_detail(query, hwnd: int):
@@ -366,30 +407,13 @@ async def _show_window_detail(query, hwnd: int):
         return
 
     r = w.get("rect", {})
-    keyboard = [
-        [
-            InlineKeyboardButton("🎯 Focus", callback_data=f"focus:{hwnd}"),
-            InlineKeyboardButton("📸 Shot", callback_data=f"shot:{hwnd}"),
-        ],
-        [
-            InlineKeyboardButton("⌨️ Type", callback_data=f"type:{hwnd}"),
-            InlineKeyboardButton("📋 Paste", callback_data=f"paste:{hwnd}"),
-            InlineKeyboardButton("🔑 Key", callback_data=f"keycombo:{hwnd}"),
-        ],
-        [
-            InlineKeyboardButton("➖ Min", callback_data=f"min:{hwnd}"),
-            InlineKeyboardButton("➕ Max", callback_data=f"max:{hwnd}"),
-            InlineKeyboardButton("❌ Close", callback_data=f"close:{hwnd}"),
-        ],
-    ]
-
     await query.message.reply_text(
         f"🖥️ <b>{w.get('title', '?')}</b>\n\n"
         f"<b>Process:</b> {w.get('process', '?')}\n"
         f"<b>HWND:</b> <code>{hwnd}</code>\n"
         f"<b>Rect:</b> ({r.get('x')}, {r.get('y')}) {r.get('width')}x{r.get('height')}",
         parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        reply_markup=_window_keyboard(hwnd),
     )
 
 
