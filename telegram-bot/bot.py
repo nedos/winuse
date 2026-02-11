@@ -31,6 +31,7 @@ from commands import (
     cmd_screenshot,
     cmd_health,
     handle_callback,
+    handle_pending_input,
 )
 
 logging.basicConfig(
@@ -44,7 +45,10 @@ logger = logging.getLogger(__name__)
 
 
 async def handle_message(update: Update, context):
-    """Log unhandled messages."""
+    """Handle pending input or log unhandled messages."""
+    if update.message and update.message.text:
+        if await handle_pending_input(update, context):
+            return
     if update.message and update.message.chat:
         chat = update.message.chat
         title = chat.title or chat.username or chat.first_name or "DM"

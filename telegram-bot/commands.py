@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import io
 import logging
 import re
 import traceback
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
 from telegram.ext import ContextTypes
 
 from config import check_user
 import winuse_api as api
+
+# Pending input: user_id -> {"action": "type"|"paste"|"keycombo", "hwnd": int}
+_pending_input: dict[int, dict] = {}
 
 logger = logging.getLogger(__name__)
 
@@ -314,13 +318,34 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("shot:"):
         hwnd = int(data.split(":", 1)[1])
         await api.focus_window(hwnd)
-        import asyncio
         await asyncio.sleep(0.3)
         png = await api.take_screenshot()
         if png:
             await query.message.reply_photo(photo=io.BytesIO(png), caption=f"📸 HWND {hwnd}")
         else:
             await query.message.reply_text("❌ Screenshot failed")
+    elif data.startswith("type:"):
+        hwnd = int(data.split(":", 1)[1])
+        _pending_input[query.from_user.id] = {"action": "type", "hwnd": hwnd}
+        await query.message.reply_text(
+            f"⌨️ Type text into HWND {hwnd}.\nSend the text now:",
+            reply_markup=ForceReply(selective=True),
+        )
+    elif data.startswith("paste:"):
+        hwnd = int(data.split(":", 1)[1])
+        _pending_input[query.from_user.id] = {"action": "paste", "hwnd": hwnd}
+        await query.message.reply_text(
+            f"📋 Paste text into HWND {hwnd}.\nSend the text now:",
+            reply_markup=ForceReply(selective=True),
+        )
+    elif data.startswith("keycombo:"):
+        hwnd = int(data.split(":", 1)[1])
+        _pending_input[query.from_user.id] = {"action": "keycombo", "hwnd": hwnd}
+        await query.message.reply_text(
+            f"🔑 Send key combo for HWND {hwnd}.\nFormat: <code>ctrl,n</code> or <code>enter</code>",
+            parse_mode="HTML",
+            reply_markup=ForceReply(selective=True),
+        )
 
 
 async def _show_window_detail(query, hwnd: int):
@@ -335,7 +360,12 @@ async def _show_window_detail(query, hwnd: int):
     keyboard = [
         [
             InlineKeyboardButton("🎯 Focus", callback_data=f"focus:{hwnd}"),
-            InlineKeyboardButton("📸 Screenshot", callback_data=f"shot:{hwnd}"),
+            InlineKeyboardButton("📸 Shot", callback_data=f"shot:{hwnd}"),
+        ],
+        [
+            InlineKeyboardButton("⌨️ Type", callback_data=f"type:{hwnd}"),
+            InlineKeyboardButton("📋 Paste", callback_data=f"paste:{hwnd}"),
+            InlineKeyboardButton("🔑 Key", callback_data=f"keycombo:{hwnd}"),
         ],
         [
             InlineKeyboardButton("➖ Min", callback_data=f"min:{hwnd}"),
@@ -364,3 +394,37 @@ async def _resolve_target(target: str) -> int | None:
         return int(target)
     w = await api.find_window_by_title(target)
     return w["hwnd"] if w else None
+
+
+async def handle_pending_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Handle text replies for pending type/paste/key actions. Returns True if handled."""
+    user_id = update.effective_user.id
+    if user_id not in _pending_input:
+        return False
+    if not check_user(user_id):
+        return False
+
+    pending = _pending_input.pop(user_id)
+    hwnd = pending["hwnd"]
+    action = pending["action"]
+    text = update.message.text
+
+    try:
+        await api.focus_window(hwnd)
+        await asyncio.sleep(0.2)
+
+        if action == "type":
+            ok = await api.type_text(text)
+            await update.message.reply_text(f"{'✅' if ok else '❌'} Typed {len(text)} chars into HWND {hwnd}")
+        elif action == "paste":
+            ok = await api.paste_text(text)
+            await update.message.reply_text(f"{'✅' if ok else '❌'} Pasted into HWND {hwnd}")
+        elif action == "keycombo":
+            keys = [k.strip().lower() for k in text.split(",")]
+            ok = await api.press_keys(keys)
+            await update.message.reply_text(f"{'✅' if ok else '❌'} Pressed {'+'.join(keys)} on HWND {hwnd}")
+    except Exception as e:
+        logger.error(f"Error in pending input: {e}\n{traceback.format_exc()}")
+        await update.message.reply_text(f"❌ Error: {e}")
+
+    return True
