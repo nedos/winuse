@@ -82,6 +82,8 @@ async def cmd_windows(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"🖥️ No windows matching '{filter_str}'")
         return
 
+    windows.sort(key=lambda w: w.get("title", "").lower())
+
     # Build inline buttons (max 20)
     buttons = []
     for w in windows[:20]:
